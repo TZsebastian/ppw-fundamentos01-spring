@@ -18,7 +18,109 @@ Spring Boot es un framework moderno diseñado bajo la filosofía *opinionated*, 
 ### 1. Captura de verificación de Java
 Verificación de la instalación del entorno de ejecución Java en su versión estable 17 (Eclipse Temurin LTS), asegurando la compatibilidad con el ecosistema del proyecto.
 
-```bash
-java -version
 
-![Verificación de Java 17](assets/javaVersion.png)
+
+![Verificación de Java 17](/assets/javaVersion.png)
+
+### 2. Captura del servidor Spring Boot ejecutándose
+Inicialización de la aplicación utilizando el wrapper de Gradle. Se evidencia el banner oficial de Spring Boot y el levantamiento automático del servidor Tomcat embebido en el puerto por defecto.
+
+![Boot](/assets/boot.png)
+
+### 3. Captura del endpoint /api/status funcionando
+Prueba de conectividad y respuesta HTTP desde el cliente (navegador web) hacia el endpoint configurado, retornando la estructura de datos correspondiente en formato JSON.
+
+URL de acceso: http://localhost:8080/api/status
+
+![api](/assets/api.png)
+
+### 4. Captura del comando de verificación en terminal
+Listado del directorio de controladores para comprobar la correcta ubicación y existencia del archivo fuente que maneja la lógica de las peticiones HTTP.
+
+![api](/assets/ls.png)
+
+## Práctica 3: API Rest
+
+**Estudiante:** Sebastian Zurita  
+**Carrera:** Ingeniería en Ciencias de la Computación  
+**Institución:** Universidad Politécnica Salesiana  
+
+## Evidencias 18/06
+
+### 1.- Localhost del nuevo recurso Students:
+
+![apiStudents](/assets/apistudents.png)
+
+
+### 2.- Students/count:
+
+![apiStudentsCount](/assets/apistudentscount.png)
+
+
+## Práctica 5: Persistencia real con PostgreSQL, Entidades JPA y Repositorios
+
+**Estudiante:** Sebastian Zurita  
+**Carrera:** Ingeniería en Ciencias de la Computación  
+**Institución:** Universidad Politécnica Salesiana  
+
+---
+
+## 1. Introducción
+
+En esta práctica se reemplazó el almacenamiento en memoria (ArrayList) por una base de datos real usando PostgreSQL, Spring Data JPA e Hibernate. Se implementó el módulo `products` con entidades JPA, repositorios y mappers siguiendo la misma arquitectura del módulo `users`.
+
+---
+
+## 10. Resultados y Evidencias
+
+### 1. Aplicación Docker Desktop
+Software de Docker funcionando con el contenedor `postgres-dev` activo.
+
+![Docker Desktop](/assets/dockerdesk.png)
+
+### 2. Verificación en PostgreSQL — usuarios
+Verificación de la tabla `users` creada automáticamente por Hibernate al iniciar la aplicación.
+
+![Verificación usuarios PostgreSQL](/assets/postuser.png)
+
+### 3. Creación de clases en `products`
+
+Se implementó la misma arquitectura del módulo `users`:
+- `ProductEntity` — extiende `BaseEntity`, representa la tabla `products`
+- `ProductRepository` — extiende `JpaRepository`
+- `ProductMapper` — convierte entre DTOs, modelos y entidades
+- `ProductServiceImpl` — usa el repositorio, sin lista en memoria
+- `ProductsController` — delega al servicio
+
+### Evidencias
+
+#### 3.1 Inserción de 5 productos desde Bruno
+Se insertaron 5 registros de productos a través de Bruno usando el método POST.
+
+![Inserción desde Bruno](/assets/bruno.png)
+
+#### 3.2 Visualización de productos — GET /api/products
+Listado completo de los 5 productos retornados por la API REST.
+
+![Lista de productos](/assets/apiproduct.png)
+
+#### 3.3 Visualización de producto específico — GET /api/products/3
+Consulta de un producto por id retornado por la API REST.
+
+![Producto específico](/assets/apiproduct3.png)
+
+#### 3.4 Verificación en PostgreSQL — productos
+Consulta `SELECT * FROM products` mostrando los 5 registros almacenados en la base de datos.
+
+![Verificación productos PostgreSQL](/assets/postproduct.png)
+
+---
+### 4. Explicar el flujo:
+
+**Desde API REST hacia PostgreSQL:**
+
+El cliente envía una petición HTTP con un JSON, el ProductsController recibe un objeto de transferencia de datos (CreateProductDto). Este DTO es enviado al ProductServiceImpl, el cual utiliza el componente ProductMapper para transformar los datos de entrada al ProductModel y posteriormente a ProductEntity. El servicio llama al método `.save()` de ProductRepository, lo que provoca que Hibernate convierta la entidad en una sentencia SQL INSERT que se ejecuta en el contenedor de PostgreSQL. Durante este proceso, los interceptores de la clase abstracta BaseEntity (como `@PrePersist`) se encargan de establecer automáticamente los valores de auditoría, como la fecha de creación en createdAt y el estado lógico de eliminación.
+
+**De PostgreSQL hacia la API REST:**
+
+Una vez realizada la inserción, PostgreSQL genera el IDENTITY correspondiente. Hibernate toma este registro y lo convierte de vuelta en un objeto ProductEntity. El procesamiento regresa a la capa de servicio, donde el ProductMapper se encarga de transformar la entidad en un ProductResponseDto. Este DTO es el que finalmente devuelve el controlador al cliente en formato JSON, ocultando las propiedades internas de la base de datos y exponiendo únicamente la información necesaria.
