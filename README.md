@@ -205,3 +205,121 @@ Se intentó actualizar un producto con `deleted = true`. El servicio lanzó una 
 Se intentó eliminar un producto que ya tenía `deleted = true`. El servicio lanzó una `IllegalStateException` con el mensaje *"El producto ya fue eliminado"*.
 
 ![DELETE producto ya eliminado](/assets/productDelete.png)
+
+## Práctica 7: Manejo Global de Errores y Excepciones
+
+### Evidencias — Módulo Products
+
+#### 1. Producto no encontrado (404 Not Found)
+
+**Request:**
+GET /api/products/999
+
+**Response:**
+
+![Producto no encontrado](./assets/7.1.png)
+
+---
+
+#### 2. Producto con nombre duplicado (409 Conflict)
+
+**Request:**
+POST /api/products
+Content-Type: application/json
+{
+"name": "Mouse Logitech",
+"description": "Otro mouse",
+"price": 40.00,
+"stock": 20
+}
+
+**Response:**
+
+![Producto duplicado](./assets/7.2.png)
+
+---
+
+#### 3. Error de validación de datos (400 Bad Request)
+
+**Request:**
+POST /api/products
+Content-Type: application/json
+{
+"name": "",
+"description": "",
+"price": -5,
+"stock": -1
+}
+
+**Response:**
+
+![Error de validación](./assets/7.3.png)
+
+## Práctica 8: Relaciones ManyToOne, Foreign Keys y Consultas Relacionales
+
+### Evidencias — Relaciones Products, Users y Categories
+
+#### 1. Estructura de la tabla `products` en PostgreSQL
+
+**Comando:**
+\d products
+
+**Resultado:**
+
+![Estructura tabla products](./assets/8.1.png)
+
+---
+
+#### 2. Creación de producto con relaciones (owner y category anidados)
+
+**Request:**
+POST /api/products
+Content-Type: application/json
+{
+"name": "Laptop Gaming",
+"description": "Laptop para gaming de alto rendimiento",
+"price": 1200.00,
+"stock": 10,
+"userId": 3,
+"categoryId": 1
+}
+
+**Response:**
+
+![Producto creado con relaciones](./assets/8.2.png)
+
+---
+
+#### 3. Consulta de productos por categoría
+
+**Request:**
+GET /api/products/category/1
+
+**Response:**
+
+![Productos por categoría](./assets/8.3.png)
+
+---
+
+
+### Explicación — Relación ProductEntity con UserEntity y CategoryEntity
+
+Para relacionar `ProductEntity` con `UserEntity` y `CategoryEntity` usé la anotación 
+`@ManyToOne`, que indica que muchos productos pueden pertenecer a un mismo usuario o 
+a una misma categoría.
+
+En cada relación usé `@JoinColumn` para definir el nombre de la columna de clave 
+foránea que se crea en la tabla `products`:
+
+- `@JoinColumn(name = "user_id")` crea la columna `user_id`, que apunta a `users(id)`.
+- `@JoinColumn(name = "category_id")` crea la columna `category_id`, que apunta a `categories(id)`.
+
+Configuré ambas relaciones con `optional = false` porque un producto no puede existir 
+sin un usuario ni sin una categoría. También usé `fetch = FetchType.LAZY` para que los 
+datos del usuario y la categoría solo se carguen cuando realmente los necesito, y así 
+evitar consultas innecesarias.
+
+Antes de guardar un producto, en el servicio valido que el `userId` y el `categoryId` 
+que me envían correspondan a un usuario y una categoría que existan y no estén 
+eliminados lógicamente. Así evito guardar productos con relaciones que apunten a datos 
+que ya no existen.

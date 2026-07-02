@@ -3,29 +3,28 @@ package ec.edu.ups.icc.fundamentos01.products.models;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * Modelo de dominio del recurso products.
- * * Representa al producto dentro de la lógica de negocio.
- * No es una entidad de base de datos y no debe tener anotaciones JPA.
- */
 public class ProductModel {
 
-    /**
-     * Identificador del producto.
-     */
     private Long id;
-
     private String name;
     private String description;
     private BigDecimal price;
     private Integer stock;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
-    // Constructor vacío
+    private Long ownerId;
+    private String ownerName;
+    private String ownerEmail;
+    private LocalDateTime ownerCreatedAt;
+
+    private Long categoryId;
+    private String categoryName;
+    private String categoryDescription;
+
     public ProductModel() {
     }
 
-    // Constructor lleno para transformaciones básicas
     public ProductModel(String name, String description, BigDecimal price, Integer stock) {
         this.name = name;
         this.description = description;
@@ -33,62 +32,117 @@ public class ProductModel {
         this.stock = stock;
     }
 
-    // Constructor completo
-    public ProductModel(Long id, String name, String description, BigDecimal price, Integer stock, LocalDateTime createdAt) {
+    // Getters y Setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
         this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
         this.description = description;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public Integer getStock() {
+        return stock;
+    }
+
+    public void setStock(Integer stock) {
         this.stock = stock;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
 
-    // Getters y Setters
-    public Long getId() { 
-        return id; 
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 
-    public void setId(Long id) { 
-        this.id = id; 
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
-    public String getName() { 
-        return name; 
+    public Long getOwnerId() {
+        return ownerId;
     }
 
-    public void setName(String name) { 
-        this.name = name; 
+    public void setOwnerId(Long ownerId) {
+        this.ownerId = ownerId;
     }
 
-    public String getDescription() { 
-        return description; 
+    public String getOwnerName() {
+        return ownerName;
     }
 
-    public void setDescription(String description) { 
-        this.description = description; 
+    public void setOwnerName(String ownerName) {
+        this.ownerName = ownerName;
     }
 
-    public BigDecimal getPrice() { 
-        return price; 
+    public String getOwnerEmail() {
+        return ownerEmail;
     }
 
-    public void setPrice(BigDecimal price) { 
-        this.price = price; 
+    public void setOwnerEmail(String ownerEmail) {
+        this.ownerEmail = ownerEmail;
     }
 
-    public Integer getStock() { 
-        return stock; 
+    public Long getCategoryId() {
+        return categoryId;
     }
 
-    public void setStock(Integer stock) { 
-        this.stock = stock; 
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
     }
 
-    public LocalDateTime getCreatedAt() { 
-        return createdAt; 
+    public String getCategoryName() {
+        return categoryName;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) { 
-        this.createdAt = createdAt; 
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
     }
+
+    public String getCategoryDescription() {
+        return categoryDescription;
+    }
+
+    public void setCategoryDescription(String categoryDescription) {
+        this.categoryDescription = categoryDescription;
+    }
+
+    public LocalDateTime getOwnerCreatedAt() {
+        return ownerCreatedAt;
+    }
+
+    public void setOwnerCreatedAt(LocalDateTime ownerCreatedAt) {
+        this.ownerCreatedAt = ownerCreatedAt;
+    }
+
 }

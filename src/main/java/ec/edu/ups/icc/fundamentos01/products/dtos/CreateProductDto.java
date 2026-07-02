@@ -7,10 +7,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-/**
- * DTO utilizado para recibir los datos necesarios
- * para crear un nuevo producto desde una petición HTTP.
- */
 public class CreateProductDto {
 
     @NotBlank(message = "El nombre es obligatorio")
@@ -28,17 +24,15 @@ public class CreateProductDto {
     @Min(value = 0, message = "El stock no puede ser negativo")
     private Integer stock;
 
+    @NotNull(message = "El ID del usuario es obligatorio")
+    private Long userId;
+
+    @NotNull(message = "El ID de la categoría es obligatorio")
+    private Long categoryId;
+
     public CreateProductDto() {
     }
 
-    public CreateProductDto(String name, String description, BigDecimal price, Integer stock) {
-        this.name = name;
-        this.description = description;
-        this.price = price;
-        this.stock = stock;
-    }
-
-    // Getters y Setters
     public String getName() {
         return name;
     }
@@ -69,5 +63,21 @@ public class CreateProductDto {
 
     public void setStock(Integer stock) {
         this.stock = stock;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
     }
 }
