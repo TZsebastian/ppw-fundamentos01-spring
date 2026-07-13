@@ -323,3 +323,362 @@ Antes de guardar un producto, en el servicio valido que el `userId` y el `catego
 que me envían correspondan a un usuario y una categoría que existan y no estén 
 eliminados lógicamente. Así evito guardar productos con relaciones que apunten a datos 
 que ya no existen.
+## Práctica 9 (Spring Boot): Request Parameters, Consultas Relacionadas y Filtrado con JPA
+
+## 27. Resultados y evidencias
+
+### 9.1 Producto creado con varias categorías
+
+Se crea un producto asignándole múltiples categorías simultáneamente mediante el campo `categoryIds`.
+
+**Request:**
+```json
+POST /products
+{
+  "name": "Laptop Gaming",
+  "price": 1200.0,
+  "stock": 5,
+  "userId": 1,
+  "categoryIds": [1, 2, 3]
+}
+```
+
+**Evidencia:**
+
+![Producto creado con varias categorías](./assets/9.1.png)
+
+---
+
+### 9.2 Consulta con filtros por usuario
+
+Se consultan los productos de un usuario aplicando filtros de nombre y precio mínimo.
+
+**Request:**
+GET /api/users/1/products?name=laptop&minPrice=500
+
+**Evidencia:**
+
+![Consulta con filtros por usuario](./assets/9.2.png)
+
+---
+
+### 9.3 Consulta con filtros por categoría
+
+Se consultan los productos de una categoría específica, filtrando además por el usuario propietario.
+
+**Request:**
+GET /api/categories/2/products?userId=1
+
+**Evidencia:**
+
+![Consulta con filtros por categoría](./assets/9.3.png)
+
+---
+
+### 9.4 Explicación breve
+
+**¿Por qué se usa `ProductService` y `ProductRepository` para consultar productos aunque el endpoint esté dentro del contexto `/users/{id}/products` o `/categories/{id}/products`?**
+
+Aunque la ruta HTTP esté anidada bajo `/users` o `/categories`, el recurso que realmente se está consultando sigue siendo `Product`. Por eso la responsabilidad de construir y ejecutar la consulta le corresponde a `ProductService` y `ProductRepository`, y no a `UserService`/`CategoryService`. Esto respeta el principio de responsabilidad única: cada servicio y repositorio se encarga únicamente de la entidad que gestiona. `CategoriesController` y `UsersController` solo reciben la petición y delegan hacia `ProductService`, actuando como una fachada del contexto, pero la lógica de acceso a datos de productos permanece centralizada en un solo lugar, evitando duplicación de queries y facilitando el mantenimiento.
+
+**¿Qué cambió al pasar de `Product N ──── 1 Category` a `Product N ──── N Category`?**
+
+- En la relación `N──1`, cada producto tenía **una sola** categoría, mapeada con `@ManyToOne` y una columna de clave foránea (`category_id`) directamente en la tabla `products`.
+- Al pasar a `N──N`, un producto puede pertenecer a **varias** categorías simultáneamente, y una categoría puede agrupar **varios** productos. Esto se implementó con `@ManyToMany` en `ProductEntity`, usando una tabla intermedia (`product_categories`) que almacena los pares `product_id` / `category_id`.
+- Esto implicó cambios en:
+  - El modelo de datos (nueva tabla intermedia en vez de columna FK).
+  - Los DTOs, que pasaron de manejar un único `categoryId` a un conjunto `categoryIds` (`Set<Long>`).
+  - Las consultas del repositorio, que ahora requieren `JOIN` con la colección `p.categories` y `DISTINCT` para evitar filas duplicadas cuando un producto coincide con varias categorías filtradas.
+  - La lógica de creación/actualización, que ahora valida y asocia un conjunto de categorías en lugar de una sola.
+
+## Práctica 10 (Spring Boot): Paginación de Productos con Page, Slice y Pageable
+
+### Autor
+- Sebastian Zurita
+
+---
+
+### 22. Resultados y evidencias
+
+#### Captura de respuesta con Page
+
+Ejemplo:
+
+```
+GET /api/products/page?page=0&size=5
+```
+
+![Page](./assets/10.1.png)
+
+---
+
+#### Captura de respuesta con Slice
+
+Ejemplo:
+
+```
+GET /api/products/slice?page=0&size=5
+```
+
+![Slice](./assets/10.2.png)
+
+---
+
+#### Captura de error por paginación inválida
+
+Ejemplo:
+
+![ErrorPage](./assets/10.3.png)
+
+
+
+---
+
+#### Captura de endpoint de categoría paginado (Page)
+
+Ejemplo:
+
+```
+GET /api/categories/2/products/page?page=110&size=5
+```
+
+![CategoriaPage](./assets/10.4.png)
+
+---
+
+#### Captura de endpoint de categoría paginado (Slice)
+
+Ejemplo:
+
+```
+GET /api/categories/2/products/slice?page=10&size=5
+```
+
+![CategoriaSlice](./assets/10.5.png)
+
+---
+
+### Explicación breve
+
+**¿Cuál es la diferencia entre Page y Slice?**
+
+`Page` ejecuta dos consultas: una para traer los datos (`LIMIT`/`OFFSET`) y otra `COUNT` para saber el total de registros. Gracias a eso puede devolver `totalElements` y `totalPages`, lo que permite mostrar cosas como "página 3 de 20". `Slice`, en cambio, solo ejecuta la consulta de datos (pidiendo un registro extra internamente para saber si hay página siguiente), por lo que es más rápido y liviano, pero no sabe cuántos registros ni páginas hay en total — solo si existe página siguiente o anterior. `Page` conviene para tablas administrativas con navegación numerada; `Slice` conviene para scroll infinito o "cargar más".
+
+**¿Por qué la paginación debe aplicarse en el repositorio y no después de traer todos los datos en memoria?**
+
+Porque si se pagina en memoria, el backend igual tiene que traer todos los registros de la base de datos, cargarlos en memoria y recién ahí cortar el subconjunto — es decir, no se resuelve el problema original de rendimiento, memoria, red y tiempo de respuesta. Al paginar en el repositorio con `Pageable`, Spring Data JPA traduce la paginación directamente a `LIMIT` y `OFFSET` en SQL, de modo que es la propia base de datos la que filtra y devuelve solo los registros necesarios. Esto reduce el consumo de memoria del servidor, el tráfico de red y el tiempo de respuesta, especialmente cuando existen miles o millones de registros.
+
+## Practica 11: Autenticación JWT, Autorización por Roles y Protección de Endpoints
+## Entregables
+### 11.1 Registro exitoso
+
+Se registra un nuevo usuario, generando el token JWT y asignando automáticamente el rol `ROLE_USER`.
+
+**Request:**
+POST /api/auth/register
+
+**Evidencia:**
+
+- Código de respuesta: `201 Created`
+- Token generado
+- Rol asignado: `ROLE_USER`
+
+![Registro exitoso](./assets/11.1.png)
+
+---
+
+### 11.2 Login exitoso
+
+Se autentica un usuario existente, devolviendo el token JWT junto con sus roles.
+
+**Request:**
+POST /api/auth/login
+
+**Evidencia:**
+
+- Código de respuesta: `200 OK`
+- Token generado
+- Roles devueltos
+
+![Login exitoso](./assets/11.2.png)
+
+---
+
+### 11.3 Endpoint protegido sin token
+
+Se intenta acceder a un endpoint protegido sin enviar el header `Authorization`.
+
+**Request:**
+GET /api/products/page?page=0&size=5
+
+**Evidencia:**
+
+- Código de respuesta: `401 Unauthorized`
+
+![Endpoint protegido sin token](./assets/11.3.png)
+
+---
+
+### 11.4 Endpoint protegido con token
+
+Se accede al mismo endpoint enviando el token JWT válido en el header.
+
+**Request:**
+GET /api/products/page?page=0&size=5
+Authorization: Bearer <token>
+
+**Evidencia:**
+
+- Código de respuesta: `200 OK`
+
+![Endpoint protegido con token](./assets/11.4.png)
+
+## Practica 12: Protección de Endpoints con Roles
+
+## 12. Resultados y evidencias
+
+### 12.1 Usuario autenticado
+
+Se consulta la información del usuario actualmente autenticado a partir de su token JWT.
+
+**Request:**
+GET /api/users/me
+Authorization: Bearer <token>
+
+**Evidencia:**
+
+- `id`
+- `name`
+- `email`
+- `roles`
+
+![Usuario autenticado](./assets/12.1.png)
+
+---
+
+### 12.2 Acceso denegado por rol
+
+Se intenta acceder a un endpoint restringido para administradores usando un token de un usuario con `ROLE_USER`.
+
+**Request:**
+GET /api/products
+Authorization: Bearer <token con ROLE_USER>
+
+**Evidencia:**
+
+- Código de respuesta: `403 Forbidden`
+
+![Acceso denegado por rol](./assets/12.2.png)
+
+---
+
+### 12.3 Acceso permitido por rol ADMIN
+
+Se accede al mismo endpoint utilizando un token de un usuario con `ROLE_ADMIN`.
+
+**Request:**
+GET /api/products
+Authorization: Bearer <token con ROLE_ADMIN>
+
+**Evidencia:**
+
+- Código de respuesta: `200 OK`
+
+![Acceso permitido por rol ADMIN](./assets/12.3.png)
+
+---
+
+### 12.4 Explicación breve
+
+**¿Cuál es la diferencia entre autenticación y autorización?**
+
+La **autenticación** verifica *quién es* el usuario, es decir, valida su identidad (por ejemplo, comprobando usuario/contraseña en el login y generando un token JWT que lo representa). La **autorización**, en cambio, determina *qué puede hacer* ese usuario ya autenticado, es decir, si tiene permiso para acceder a un recurso o ejecutar una acción específica, en función de sus roles o privilegios. En Spring Security, la autenticación ocurre al validar el token JWT en cada petición (identificando al usuario), mientras que la autorización ocurre al evaluar anotaciones como `@PreAuthorize("hasRole('ADMIN')")`, que deciden si ese usuario autenticado tiene el rol necesario para continuar.
+
+**¿Por qué `GET /api/products` debe ser solo para ADMIN, mientras `GET /api/products/page` puede ser consumido por cualquier usuario autenticado?**
+
+`GET /api/products` devuelve **la lista completa** de productos sin paginación ni restricciones, lo cual expone todos los registros del sistema de una sola vez. Esto es información sensible desde el punto de vista de rendimiento y de administración, por lo que se reserva a usuarios con `ROLE_ADMIN`, quienes necesitan visibilidad total para tareas de gestión. En cambio, `GET /api/products/page` entrega los datos de forma **paginada y controlada**, pensado para el consumo habitual de cualquier usuario autenticado (por ejemplo, para navegar el catálogo), sin comprometer el rendimiento del servidor ni exponer de golpe toda la base de datos. La paginación actúa como un mecanismo natural de control de acceso a nivel de volumen de datos, permitiendo que el endpoint sea seguro para un público más amplio.
+
+## Practica 13: Validación de Propiedad de Recursos
+
+## 13. Resultados y evidencias
+
+### 13.1 Creación de producto con usuario autenticado
+
+Se crea un producto utilizando el token del usuario autenticado, quien queda automáticamente asignado como propietario (`owner`).
+
+**Request:**
+POST /api/products
+Authorization: Bearer <token>
+
+**Evidencia:**
+
+- Código de respuesta: `201 Created`
+- Producto creado
+- `owner` corresponde al usuario autenticado
+
+![13.1](./assets/13.1.png)
+
+---
+
+### 13.2 Bloqueo por producto ajeno
+
+Se intenta modificar un producto que pertenece a otro usuario, utilizando un token distinto al del propietario.
+
+**Request:**
+PUT /api/products/{id}
+Authorization: Bearer <token de otro usuario>
+
+**Evidencia:**
+
+- Código de respuesta: `403 Forbidden`
+- Mensaje: "No puedes modificar productos ajenos"
+
+![13.2](./assets/13.2.png)
+
+---
+
+### 13.3 Eliminación de producto ajeno bloqueada
+
+Se intenta eliminar un producto que pertenece a otro usuario, utilizando un token distinto al del propietario.
+
+**Request:**
+DELETE /api/products/{id}
+Authorization: Bearer <token de otro usuario>
+
+**Evidencia:**
+
+- Código de respuesta: `403 Forbidden`
+
+![13.3](./assets/13.3.png)
+
+---
+
+### 13.4 ADMIN modificando producto ajeno
+
+Se modifica un producto que pertenece a otro usuario, utilizando un token con `ROLE_ADMIN`.
+
+**Request:**
+PUT /api/products/{id}
+Authorization: Bearer <token con ROLE_ADMIN>
+
+**Evidencia:**
+
+- Código de respuesta: `200 OK`
+
+![13.4](./assets/13.4.png)
+
+---
+
+### 18.5 Explicación breve
+
+**¿Qué es ownership?**
+
+El *ownership* (propiedad) es el mecanismo de autorización que restringe las operaciones de modificación o eliminación de un recurso únicamente a quien lo creó (su propietario), independientemente de que esté autenticado y tenga permisos generales sobre ese tipo de recurso. En este proyecto, cada `Product` almacena una referencia a su `owner` (el usuario que lo creó), y antes de permitir un `UPDATE`, `PATCH` o `DELETE`, el servicio verifica que el `id` del usuario autenticado coincida con el `id` del `owner` del producto. Si no coincide, se lanza `AccessDeniedException` (403), salvo que el usuario tenga un rol superior como `ROLE_ADMIN`, que omite esta validación.
+
+**¿Por qué no es seguro recibir `userId` en `CreateProductDto`?**
+
+Si el cliente pudiera enviar el `userId` directamente en el body de la petición, cualquier usuario autenticado podría crear productos asignándolos a la cuenta de otra persona, simplemente cambiando ese valor en el JSON. Esto rompe la integridad del ownership, ya que el propietario del recurso dejaría de depender de quién realmente hizo la petición y pasaría a depender de un dato arbitrario controlado por el cliente. Por eso, el `owner` del producto debe obtenerse siempre del usuario autenticado (extraído del token JWT mediante `@AuthenticationPrincipal`), y nunca de un campo que el cliente pueda manipular libremente.
+
+**¿Cuál es la diferencia entre autorización por rol y autorización por ownership?**
+
+La **autorización por rol** decide el acceso en función de una categoría general asignada al usuario (por ejemplo, `ROLE_ADMIN` puede acceder a cualquier producto, sin importar quién lo creó). Es una regla estática que aplica igual para todos los usuarios que comparten ese rol. La **autorización por ownership**, en cambio, es una regla dinámica y específica del recurso: depende de la relación entre el usuario autenticado y el dato concreto que se está accediendo (si el `userId` del token coincide con el `owner.id` del producto). Un mismo usuario puede tener permiso sobre un producto (el suyo) y no tenerlo sobre otro (el de alguien más), aunque su rol sea el mismo en ambos casos. En la práctica, ambas se combinan: primero se verifica si el rol otorga acceso total (como `ADMIN`), y si no, se cae al chequeo de ownership como segunda barrera de seguridad.

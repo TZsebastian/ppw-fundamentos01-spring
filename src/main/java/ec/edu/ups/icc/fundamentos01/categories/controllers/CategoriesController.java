@@ -15,16 +15,25 @@ import ec.edu.ups.icc.fundamentos01.categories.dtos.CategoryResponseDto;
 import ec.edu.ups.icc.fundamentos01.categories.dtos.CreateCategoryDto;
 import ec.edu.ups.icc.fundamentos01.categories.dtos.UpdateCategoryDto;
 import ec.edu.ups.icc.fundamentos01.categories.services.CategoryService;
+import ec.edu.ups.icc.fundamentos01.products.dtos.ProductFilterByCategoryDto; // CORREGIDO EL IMPORT
+import ec.edu.ups.icc.fundamentos01.products.dtos.ProductResponseDto;
+import ec.edu.ups.icc.fundamentos01.products.services.ProductService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Slice;
+import ec.edu.ups.icc.fundamentos01.core.dto.PaginationDto;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/categories")
+@RequestMapping("/categories") // Ajustado con el prefijo /api común en tu proyecto
 public class CategoriesController {
 
     private final CategoryService service;
+    private final ProductService productService;
 
-    public CategoriesController(CategoryService service) {
+    public CategoriesController(CategoryService service, ProductService productService) {
         this.service = service;
+        this.productService = productService;
     }
 
     @GetMapping
@@ -37,6 +46,19 @@ public class CategoriesController {
         return service.findOne(id);
     }
 
+    /*
+     * Endpoint para consultar productos de una categoría con filtros avanzados.
+     * * GET /api/categories/{id}/products
+     * GET /api/categories/{id}/products?name=gaming&minPrice=100&userId=1
+     */
+    @GetMapping("/{id}/products")
+    public List<ProductResponseDto> findProductsByCategory(
+            @PathVariable Long id,
+            @Valid ProductFilterByCategoryDto filters // CORREGIDO: Ahora usa el DTO de categorías
+    ) {
+        return productService.findByCategoryIdWithFilters(id, filters);
+    }
+
     @PostMapping
     public CategoryResponseDto create(@Valid @RequestBody CreateCategoryDto dto) {
         return service.create(dto);
@@ -45,13 +67,37 @@ public class CategoriesController {
     @PutMapping("/{id}")
     public CategoryResponseDto update(
             @PathVariable Long id,
-            @Valid @RequestBody UpdateCategoryDto dto
-    ) {
+            @Valid @RequestBody UpdateCategoryDto dto) {
         return service.update(id, dto);
     }
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
         service.delete(id);
+    }
+
+    /*
+     * GET /categories/{id}/products/page
+     * GET /categories/{id}/products/page?name=gaming&page=0&size=5&sortBy=price&
+     * direction=desc
+     */
+    @GetMapping("/{id}/products/page")
+    public Page<ProductResponseDto> findProductsByCategoryPage(
+            @PathVariable Long id,
+            @Valid ProductFilterByCategoryDto filters,
+            @Valid @ModelAttribute PaginationDto pagination) {
+        return productService.findByCategoryIdWithFiltersPage(id, filters, pagination);
+    }
+
+    /*
+     * GET /categories/{id}/products/slice
+     * GET /categories/{id}/products/slice?page=0&size=5
+     */
+    @GetMapping("/{id}/products/slice")
+    public Slice<ProductResponseDto> findProductsByCategorySlice(
+            @PathVariable Long id,
+            @Valid ProductFilterByCategoryDto filters,
+            @Valid @ModelAttribute PaginationDto pagination) {
+        return productService.findByCategoryIdWithFiltersSlice(id, filters, pagination);
     }
 }

@@ -1,5 +1,9 @@
 package ec.edu.ups.icc.fundamentos01.products.entities;
 
+import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.Set;
+
 import ec.edu.ups.icc.fundamentos01.categories.entities.CategoryEntity;
 import ec.edu.ups.icc.fundamentos01.core.entities.BaseEntity;
 import ec.edu.ups.icc.fundamentos01.users.entities.UserEntity;
@@ -7,9 +11,10 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.math.BigDecimal;
 
 @Entity
 @Table(name = "products")
@@ -27,38 +32,37 @@ public class ProductEntity extends BaseEntity {
     @Column(nullable = false)
     private Integer stock;
 
-    /*
-     * Relación muchos a uno con UserEntity.
-     * Muchos productos pueden pertenecer a un usuario.
-     */
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity owner;
 
     /*
-     * Relación muchos a uno con CategoryEntity.
-     * Muchos productos pueden pertenecer a una categoría.
+     * Relación muchos a muchos entre productos y categorías.
+     *
+     * Un producto puede pertenecer a varias categorías.
+     * Una categoría puede tener varios productos.
      */
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
-    private CategoryEntity category;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "product_categories",
+            joinColumns = @JoinColumn(name = "product_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    private Set<CategoryEntity> categories = new HashSet<>();
 
-    // Constructor vacío
     public ProductEntity() {
     }
 
-    // Constructor lleno
     public ProductEntity(String name, String description, BigDecimal price, Integer stock,
-                          UserEntity owner, CategoryEntity category) {
+                          UserEntity owner, Set<CategoryEntity> categories) {
         this.name = name;
         this.description = description;
         this.price = price;
         this.stock = stock;
         this.owner = owner;
-        this.category = category;
+        this.categories = categories;
     }
 
-    // Getters y Setters
     public String getName() {
         return name;
     }
@@ -99,11 +103,11 @@ public class ProductEntity extends BaseEntity {
         this.owner = owner;
     }
 
-    public CategoryEntity getCategory() {
-        return category;
+    public Set<CategoryEntity> getCategories() {
+        return categories;
     }
 
-    public void setCategory(CategoryEntity category) {
-        this.category = category;
+    public void setCategories(Set<CategoryEntity> categories) {
+        this.categories = categories;
     }
 }

@@ -18,6 +18,13 @@ import ec.edu.ups.icc.fundamentos01.products.dtos.ProductResponseDto;
 import ec.edu.ups.icc.fundamentos01.products.dtos.UpdateProductDto;
 import ec.edu.ups.icc.fundamentos01.products.services.ProductService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Slice;
+import ec.edu.ups.icc.fundamentos01.core.dto.PaginationDto;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import ec.edu.ups.icc.fundamentos01.security.services.UserDetailsImpl;
 
 @RestController
 @RequestMapping("/products")
@@ -30,6 +37,7 @@ public class ProductsController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public List<ProductResponseDto> findAll() {
         return service.findAll();
     }
@@ -56,28 +64,53 @@ public class ProductsController {
     }
 
     @PostMapping
-    public ProductResponseDto create(@Valid @RequestBody CreateProductDto dto) {
-        return service.create(dto);
+    public ProductResponseDto create(
+            @Valid @RequestBody CreateProductDto dto,
+            @AuthenticationPrincipal UserDetailsImpl currentUser) {
+        return service.create(dto, currentUser);
     }
 
     @PutMapping("/{id}")
     public ProductResponseDto update(
             @PathVariable Long id,
-            @Valid @RequestBody UpdateProductDto dto
-    ) {
-        return service.update(id, dto);
+            @Valid @RequestBody UpdateProductDto dto,
+            @AuthenticationPrincipal UserDetailsImpl currentUser) {
+        return service.update(id, dto, currentUser);
     }
 
     @PatchMapping("/{id}")
     public ProductResponseDto partialUpdate(
             @PathVariable Long id,
-            @Valid @RequestBody PartialUpdateProductDto dto
-    ) {
-        return service.partialUpdate(id, dto);
+            @Valid @RequestBody PartialUpdateProductDto dto,
+            @AuthenticationPrincipal UserDetailsImpl currentUser) {
+        return service.partialUpdate(id, dto, currentUser);
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
-        service.delete(id);
+    public void delete(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetailsImpl currentUser) {
+        service.delete(id, currentUser);
     }
+
+    /*
+     * GET /products/page
+     * GET /products/page?page=0&size=5&sortBy=price&direction=desc
+     */
+    @GetMapping("/page")
+    public Page<ProductResponseDto> findAllPage(@Valid @ModelAttribute PaginationDto pagination) {
+        return service.findAllPage(pagination);
+    }
+
+    /*
+     * GET /products/slice
+     * GET /products/slice?page=0&size=5&sortBy=createdAt&direction=desc
+     */
+    @GetMapping("/slice")
+    public Slice<ProductResponseDto> findAllSlice(
+            @Valid @ModelAttribute PaginationDto pagination,
+            @AuthenticationPrincipal UserDetailsImpl currentUser) {
+        return service.findAllSlice(pagination, currentUser);
+    }
+
 }

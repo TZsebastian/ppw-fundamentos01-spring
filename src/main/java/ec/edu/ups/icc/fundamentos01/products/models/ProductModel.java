@@ -2,6 +2,9 @@ package ec.edu.ups.icc.fundamentos01.products.models;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+
+import ec.edu.ups.icc.fundamentos01.categories.entities.CategoryEntity;
 
 public class ProductModel {
 
@@ -18,21 +21,11 @@ public class ProductModel {
     private String ownerEmail;
     private LocalDateTime ownerCreatedAt;
 
-    private Long categoryId;
-    private String categoryName;
-    private String categoryDescription;
+    private List<CategoryEntity> categories;
 
     public ProductModel() {
     }
 
-    public ProductModel(String name, String description, BigDecimal price, Integer stock) {
-        this.name = name;
-        this.description = description;
-        this.price = price;
-        this.stock = stock;
-    }
-
-    // Getters y Setters
     public Long getId() {
         return id;
     }
@@ -113,30 +106,6 @@ public class ProductModel {
         this.ownerEmail = ownerEmail;
     }
 
-    public Long getCategoryId() {
-        return categoryId;
-    }
-
-    public void setCategoryId(Long categoryId) {
-        this.categoryId = categoryId;
-    }
-
-    public String getCategoryName() {
-        return categoryName;
-    }
-
-    public void setCategoryName(String categoryName) {
-        this.categoryName = categoryName;
-    }
-
-    public String getCategoryDescription() {
-        return categoryDescription;
-    }
-
-    public void setCategoryDescription(String categoryDescription) {
-        this.categoryDescription = categoryDescription;
-    }
-
     public LocalDateTime getOwnerCreatedAt() {
         return ownerCreatedAt;
     }
@@ -145,4 +114,54 @@ public class ProductModel {
         this.ownerCreatedAt = ownerCreatedAt;
     }
 
+    public List<CategoryEntity> getCategories() {
+        return categories;
+    }
+
+    /*
+     * Clase interna simple para representar los datos mínimos
+     * de una categoría dentro del modelo de producto.
+     */
+    public static class CategorySummary {
+        private Long id;
+        private String name;
+        private String description;
+
+        public CategorySummary() {
+        }
+
+        public CategorySummary(Long id, String name, String description) {
+            this.id = id;
+            this.name = name;
+            this.description = description;
+        }
+
+        public Long getId() {
+            return id;
+        }
+
+        public void setId(Long id) {
+            this.id = id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(String description) {
+            this.description = description;
+        }
+    }
+
+    public void setCategories(List<CategoryEntity> categories) {
+        this.categories = categories;
+    }
 }
