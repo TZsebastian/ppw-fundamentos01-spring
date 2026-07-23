@@ -1,0 +1,33 @@
+# Gradle
+.gradle/
+build/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Variables y secretos
+.env
+.env.*
+
+# Logs
+*.log
+logs/
+
+# Temporales
+*.tmp
+*.swp
+tmp/
+temp/
+
+# Documentación
+README.md

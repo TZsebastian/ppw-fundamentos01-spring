@@ -35,3 +35,17 @@ out/
 
 ### VS Code ###
 .vscode/
+
+.env
+.env.*
+!.env.example
+
+### Docker & Archivos pesados ###
+*.tar
+*.tar.gz
+*.zip
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+
+### Logs ###
+*.log

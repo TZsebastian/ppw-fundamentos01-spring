@@ -119,6 +119,9 @@ public class GlobalExceptionHandler {
         public ResponseEntity<ErrorResponse> handleUnexpectedException(
                         Exception ex,
                         HttpServletRequest request) {
+
+                ex.printStackTrace(); // <-- única línea nueva
+
                 ErrorResponse response = new ErrorResponse(
                                 HttpStatus.INTERNAL_SERVER_ERROR,
                                 "Error interno del servidor",

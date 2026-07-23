@@ -1,6 +1,5 @@
 package ec.edu.ups.icc.fundamentos01.security.filters;
 
-// imports packages y clases....
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -77,9 +76,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String jwt = getJwtFromRequest(request);
 
             /**
-             * PASO 2: Validar y autenticar SOLO si hay token
+             * PASO 2: Validar y autenticar SOLO si hay token y es de tipo ACCESS
+             * [CAMBIO PRÁCTICA 14]: Usamos validateAccessToken para evitar bypass usando un refresh token
              */
-            if (StringUtils.hasText(jwt) && jwtUtil.validateToken(jwt)) {
+            if (StringUtils.hasText(jwt) && jwtUtil.validateAccessToken(jwt)) {
 
                 /**
                  * PASO 3: Extraer email del token
@@ -154,15 +154,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                  * 
                  * @AuthenticationPrincipal UserDetailsImpl currentUser
                  * 
-                 *                          En servicios:
-                 *                          Authentication auth =
-                 *                          SecurityContextHolder.getContext().getAuthentication();
-                 *                          UserDetailsImpl user = (UserDetailsImpl)
-                 *                          auth.getPrincipal();
+                 *                                           En servicios:
+                 *                                           Authentication auth =
+                 *                                           SecurityContextHolder.getContext().getAuthentication();
+                 *                                           UserDetailsImpl user = (UserDetailsImpl)
+                 *                                           auth.getPrincipal();
                  * 
-                 *                          En @PreAuthorize:
-                 *                          @PreAuthorize("hasRole('ADMIN')") ← Lee authorities
-                 *                          de aquí
+                 *                                           En @PreAuthorize:
+                 *                                           @PreAuthorize("hasRole('ADMIN')") ← Lee authorities
+                 *                                           de aquí
                  */
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 

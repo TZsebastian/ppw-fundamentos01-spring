@@ -31,8 +31,8 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     public SecurityConfig(UserDetailsServiceImpl userDetailsService,
-                          JwtAuthenticationEntryPoint unauthorizedHandler,
-                          JwtAuthenticationFilter jwtAuthenticationFilter) {
+            JwtAuthenticationEntryPoint unauthorizedHandler,
+            JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.userDetailsService = userDetailsService;
         this.unauthorizedHandler = unauthorizedHandler;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
@@ -49,7 +49,8 @@ public class SecurityConfig {
      * - PasswordEncoder: Valida la contraseña hasheada
      * 
      * Spring Security usa este provider para autenticar credenciales.
-     * El constructor acepta directamente el UserDetailsService en Spring Boot 3.x/4.x
+     * El constructor acepta directamente el UserDetailsService en Spring Boot
+     * 3.x/4.x
      */
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
@@ -66,29 +67,28 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // Deshabilitar CSRF (no necesario para APIs REST con JWT)
-            .csrf(AbstractHttpConfigurer::disable)
+                // Deshabilitar CSRF (no necesario para APIs REST con JWT)
+                .csrf(AbstractHttpConfigurer::disable)
 
-            // Configurar manejo de excepciones de autenticación
-            .exceptionHandling(exception -> exception
-                .authenticationEntryPoint(unauthorizedHandler)
-            )
+                // Configurar manejo de excepciones de autenticación
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(unauthorizedHandler))
 
-            // Configurar sesiones como stateless (no usar sesiones HTTP)
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
+                // Configurar sesiones como stateless (no usar sesiones HTTP)
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-            // Configurar autorización de requests
-            .authorizeHttpRequests(auth -> auth
-                // Endpoints públicos (sin autenticación)
-                .requestMatchers("/auth/**").permitAll()
-                .requestMatchers("/status/**").permitAll()
-                .requestMatchers("/actuator/**").permitAll()
-                
-                // Todos los demás endpoints requieren autenticación
-                .anyRequest().authenticated()
-            );
+                // Configurar autorización de requests
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/status/**").permitAll()
+                        .requestMatchers("/actuator/**").permitAll() 
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**")
+                        .permitAll()
+                        .anyRequest().authenticated());
 
         // Agregar proveedor de autenticación
         http.authenticationProvider(authenticationProvider());

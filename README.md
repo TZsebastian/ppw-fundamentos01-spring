@@ -669,7 +669,7 @@ Authorization: Bearer <token con ROLE_ADMIN>
 
 ---
 
-### 18.5 Explicación breve
+### 13.5 Explicación breve
 
 **¿Qué es ownership?**
 
@@ -682,3 +682,226 @@ Si el cliente pudiera enviar el `userId` directamente en el body de la petición
 **¿Cuál es la diferencia entre autorización por rol y autorización por ownership?**
 
 La **autorización por rol** decide el acceso en función de una categoría general asignada al usuario (por ejemplo, `ROLE_ADMIN` puede acceder a cualquier producto, sin importar quién lo creó). Es una regla estática que aplica igual para todos los usuarios que comparten ese rol. La **autorización por ownership**, en cambio, es una regla dinámica y específica del recurso: depende de la relación entre el usuario autenticado y el dato concreto que se está accediendo (si el `userId` del token coincide con el `owner.id` del producto). Un mismo usuario puede tener permiso sobre un producto (el suyo) y no tenerlo sobre otro (el de alguien más), aunque su rol sea el mismo en ambos casos. En la práctica, ambas se combinan: primero se verifica si el rol otorga acceso total (como `ADMIN`), y si no, se cae al chequeo de ownership como segunda barrera de seguridad.
+
+
+## Práctica 14: Renovación de Access Token con Refresh Token
+
+## Resultados y Evidencias
+
+En esta sección se presentan las capturas que demuestran el funcionamiento correcto del flujo completo de autenticación, renovación y revocación de tokens.
+
+---
+
+### 28.1. Captura de Login con Refresh Token
+
+* **Endpoint:** `POST /api/auth/login`
+* **Descripción:** Inicio de sesión exitoso. Retorna los datos del usuario junto al `token` de acceso, el `refreshToken` y sus `roles`.
+
+
+![Login con Refresh Token](./assets/14.1.png)
+
+*Evidencia en la respuesta:*
+- `token`
+- `refreshToken`
+- `roles`
+
+---
+
+### 28.2. Captura de Refresh Exitoso
+
+* **Endpoint:** `POST /api/auth/refresh`
+* **Descripción:** Renovación exitosa del token utilizando un `refreshToken` válido y no revocado.
+
+
+![Refresh Exitoso](./assets/14.2.png)
+
+*Evidencia en la respuesta:*
+- **Estado:** `200 OK`
+- `token` (nuevo access token generado)
+- `refreshToken` (nuevo refresh token generado por la rotación)
+
+---
+
+
+### 28.3. Captura de Logout
+
+* **Endpoint:** `POST /api/auth/logout`
+* **Descripción:** Cierre de sesión que revoca el `refreshToken` activo en la base de datos.
+
+
+![Logout Exitoso](./assets/14.3.png)
+
+*Evidencia en la respuesta:*
+- **Estado:** `204 No Content`
+
+---
+
+### 28.4. Captura de Refresh después de Logout
+
+* **Endpoint:** `POST /api/auth/refresh`
+* **Descripción:** Intento fallido de renovar tokens enviando un `refreshToken` que ya fue revocado previamente durante el logout.
+
+
+![Refresh rechazado por revocación](./assets/14.4.png)
+
+*Evidencia en la respuesta:*
+- **Estado:** `400 Bad Request`
+- Mensaje/Causa: *Refresh token revocado*
+
+---
+
+### 28.5. Explicación Teórica
+
+#### ¿Cuál es la diferencia entre access token y refresh token?
+* **Access Token:** Es un token de **corta duración** (minutos u horas) que se envía en cada petición para autorizar el acceso a recursos protegidos. No requiere consultar la base de datos en cada petición (es *stateless*).
+* **Refresh Token:** Es un token de **larga duración** (días o semanas) cuyo único propósito es solicitar un nuevo *Access Token* cuando el actual expira. Se almacena y valida contra la base de datos para poder ser revocado si es necesario.
+
+#### ¿Por qué el refresh token no debe usarse en Authorization: Bearer?
+El encabezado `Authorization: Bearer` está reservado exclusivamente para autenticar y autorizar el acceso a los endpoints de la API. Si un *Refresh Token* pudiera usarse como *Bearer Token*, perdería su propósito de seguridad: un atacante que intercepte un *Refresh Token* podría consumir recursos del sistema durante días o semanas sin restricción, anulando el beneficio de tener un *Access Token* de vida corta.
+
+#### ¿Qué significa rotar un refresh token?
+Rotar un *Refresh Token* (*Refresh Token Rotation*) es un mecanismo de seguridad en el que, **cada vez que se utiliza un refresh token para obtener un nuevo access token, el refresh token usado queda inmediatamente invalidado/revocado y se entrega uno totalmente nuevo**. Esto previene ataques de reutilización y permite detectar si un token ha sido robado o interceptado.
+
+## Práctica 15: Documentación de Endpoints con Swagger, OpenAPI y Seguridad JWT
+
+## 23. Resultados y Evidencias 
+
+### Evidencias Fotográficas
+
+#### 1. Swagger UI cargado
+Muestra la interfaz interactiva de Swagger UI cargada con los controladores y endpoints organizados por etiquetas.
+
+![Swagger UI Cargado](assets/15.1.png)
+
+---
+
+#### 2. JSON OpenAPI
+Muestra la especificación OpenAPI generada en formato JSON con la estructura básica (`openapi`, `paths`, `components`).
+
+![JSON OpenAPI](assets/15.2.png)
+
+---
+
+#### 3. AuthController Documentado
+Muestra el grupo de controladores de autenticación con las descripciones de los endpoints de login, registro, refresh y logout.
+
+![AuthController Documentado](assets/15.3.png)
+
+---
+
+#### 4. Configuración del botón Authorize
+Muestra la ventana modal del botón Authorize con el esquema de seguridad `bearerAuth` configurado para tokens JWT.
+
+![Botón Authorize](assets/15.4.png)
+
+---
+
+#### 5. Endpoint protegido sin token (401 Unauthorized)
+Petición al endpoint `GET /api/products/page` realizada sin adjuntar un token en el encabezado `Authorization`.
+
+![Endpoint sin token 401](assets/15.5.png)
+
+---
+
+#### 6. Endpoint protegido con token desde Swagger (200 OK)
+Petición al endpoint `GET /api/products/page` realizada exitosamente tras autenticarse con un token JWT válido desde el botón Authorize.
+
+![Endpoint con token 200](assets/15.6.1.png)
+
+
+![Endpoint correcto 15.6.2](assets/15.6.2.png)
+
+---
+
+#### 7. Endpoint ADMIN consultado con usuario normal (403 Forbidden)
+Intento de acceso a un recurso restringido para administradores utilizando un token que únicamente cuenta con el rol `ROLE_USER`.
+
+![Endpoint ADMIN con usuario normal 403](assets/15.7.png)
+
+---
+
+#### 8. Endpoint ADMIN consultado con usuario administrador (200 OK)
+Acceso concedido al recurso restringido tras autenticarse con un token que contiene el rol `ROLE_ADMIN`.
+
+![Endpoint ADMIN con usuario admin 200](assets/15.8.png)
+
+---
+
+---
+
+### Explicación Breve (Cuestionario Teórico)
+
+#### ¿Cuál es la diferencia entre Swagger UI y OpenAPI?
+* **OpenAPI:** Es una **especificación técnica estándar** y agnóstica (definida en formato JSON o YAML) que describe la estructura, contratos, rutas, parámetros, esquemas de datos y métodos de autenticación de una API RESTful.
+* **Swagger UI:** Es una **herramienta visual/interactiva** (una interfaz de usuario web) que lee e interpreta el archivo o especificación OpenAPI para renderizar una página interactiva, permitiendo a los desarrolladores consultar la documentación y realizar pruebas sobre la API en tiempo real.
+
+---
+
+#### ¿Por qué Swagger puede ser público pero los endpoints seguir protegidos?
+Porque Swagger UI actúa únicamente como una **capa visual de documentación y cliente HTTP**. La exposición pública de la interfaz de Swagger permite a los clientes consultar cómo deben estructurarse los datos y qué endpoints existen. Sin embargo, **Spring Security sigue evaluando de manera independiente cada solicitud HTTP recibida en los controladores**. Si una ruta está protegida por la configuración de seguridad, cualquier petición enviada desde la interfaz de Swagger que no adjunte un encabezado `Authorization: Bearer <token>` válido continuará siendo rechazada por el servidor con un código de estado `401 Unauthorized` o `403 Forbidden`.
+
+---
+
+#### ¿Cómo se configura Swagger para enviar un JWT en `Authorization: Bearer`?
+Se configura mediante una clase anotada con `@Configuration` en Spring Boot, creando un Bean de tipo `OpenAPI`. En este Bean se declara un esquema de seguridad (`SecurityScheme`) con el tipo HTTP Bearer y el formato JWT, asignándole un nombre de referencia (por ejemplo, `bearerAuth`). Luego, este esquema se añade a los componentes globales y al `SecurityRequirement` de la API:
+
+```java
+@Configuration
+public class OpenAPIConfig {
+
+    @Bean
+    public OpenAPI customOpenAPI() {
+        return new OpenAPI()
+            .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
+            .components(new Components()
+                .addSecuritySchemes("bearerAuth",
+                    new SecurityScheme()
+                        .name("bearerAuth")
+                        .type(SecurityScheme.Type.HTTP)
+                        .scheme("bearer")
+                        .bearerFormat("JWT")
+                        .description("Ingrese el JWT generado en /auth/login")));
+    }
+}
+
+```
+
+## Practica 16: Despliegue portable de Spring Boot con Docker y Nginx en Ubuntu Server
+
+## 16. Entregables de la Práctica
+
+### 1. Captura de `docker ps` de Ubuntu Server
+Muestra ambos contenedores (`nginx` en puerto `80:80` y `fundamentos-api` expuesto de forma interna) en ejecución dentro de Ubuntu Server:
+
+![Docker Ubuntu](./assets/16.1.png)
+
+---
+
+### 2. Captura de `curl` de `/api/actuator/health` desde Ubuntu Server
+Verificación de la disponibilidad de la API ejecutado localmente desde la consola de Ubuntu Server a través de Nginx:
+
+```bash
+curl http://localhost/api/actuator/health
+```
+![Curl health](./assets/16.2.jpg)
+
+
+## 3. Captura de curl de /api/actuator/health desde la máquina anfitriona
+Comprobación del flujo HTTP desde la máquina Windows accediendo a la IP de la máquina virtual Ubuntu (192.168.56.101) en el puerto 80 gestionado por Nginx:
+
+![Curl health Windows](./assets/16.3.png)
+
+
+## 4. Explicación de la conexión a PostgreSQL externo
+Para garantizar la portabilidad total de la imagen sin acoplar la base de datos dentro del contenedor:
+
+Inyección de Variables de Entorno: Se suministró la variable DATABASE_URL=jdbc:postgresql://192.168.56.1:5432/devdb al contenedor mediante el archivo .env.ubuntu con el parámetro --env-file de Docker.
+
+PostgreSQL en el Host: La base de datos se mantiene de forma independiente en la máquina anfitriona (Windows) escuchando en el puerto 5432.
+
+Comunicación por Red Host-Only: La conexión entre la VM de Ubuntu y la máquina Windows se realiza a través del adaptador Host-Only de VirtualBox (subred 192.168.56.0/24), aceptando tráfico entrante en el puerto 5432.
+
+## 5. Captura consumo de login desde la máquina anfitriona con Bruno
+Demostración del consumo del endpoint de autenticación mediante el cliente Bruno desde Windows. La petición pasa por Nginx (http://192.168.56.101/api/auth/login), se procesa en Spring Boot y retorna el token JWT (200 OK):
+
+![Bruno Ubuntu](./assets/16.4.png)
